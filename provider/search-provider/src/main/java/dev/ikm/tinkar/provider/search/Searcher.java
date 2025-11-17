@@ -39,6 +39,7 @@ import dev.ikm.tinkar.terms.EntityProxy;
 import dev.ikm.tinkar.terms.TinkarTerm;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -99,6 +100,7 @@ public class Searcher {
                     highlighter.setTextFragmenter(new NullFragmenter());
 
                     ScoreDoc[] hits = indexSearcher.search(query, maxResultSize).scoreDocs;
+                    StoredFields storedFields = indexSearcher.storedFields();
                     results = new PrimitiveDataSearchResult[hits.length];
                     for (int i = 0; i < hits.length; i++) {
                         int docId = hits[i].doc;

@@ -19,42 +19,30 @@ import dev.ikm.tinkar.common.util.time.Stopwatch;
 import dev.ikm.tinkar.component.FieldDataType;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.ObjIntConsumer;
 
 public abstract class EntityProcessor implements ObjIntConsumer<byte[]> {
 
-    AtomicInteger totalCount = new AtomicInteger();
-    AtomicInteger conceptCount = new AtomicInteger();
-    AtomicInteger semanticCount = new AtomicInteger();
-    AtomicInteger patternCount = new AtomicInteger();
-    AtomicInteger stampCount = new AtomicInteger();
-    AtomicInteger other = new AtomicInteger();
+    LongAdder totalCount = new LongAdder();
+    LongAdder conceptCount = new LongAdder();
+    LongAdder semanticCount = new LongAdder();
+    LongAdder patternCount = new LongAdder();
+    LongAdder stampCount = new LongAdder();
+    LongAdder other = new LongAdder();
     Stopwatch stopwatch = new Stopwatch();
 
     @Override
     public void accept(byte[] bytes, int value) {
         // bytes starts with number of arrays (int = 4 bytes), then size of first array (int = 4 bytes), then entity format version then type token, -1 since index starts at 0...
         FieldDataType componentType = FieldDataType.fromToken(bytes[9]);
+        totalCount.increment();
         switch (componentType) {
-            case PATTERN_CHRONOLOGY:
-                patternCount.incrementAndGet();
-                totalCount.incrementAndGet();
-                break;
-            case CONCEPT_CHRONOLOGY:
-                conceptCount.incrementAndGet();
-                totalCount.incrementAndGet();
-                break;
-            case SEMANTIC_CHRONOLOGY:
-                semanticCount.incrementAndGet();
-                totalCount.incrementAndGet();
-                break;
-            case STAMP:
-                stampCount.incrementAndGet();
-                totalCount.incrementAndGet();
-                break;
-            default:
-                other.incrementAndGet();
-                totalCount.incrementAndGet();
+            case PATTERN_CHRONOLOGY -> patternCount.increment();
+            case CONCEPT_CHRONOLOGY -> conceptCount.increment();
+            case SEMANTIC_CHRONOLOGY -> semanticCount.increment();
+            case STAMP -> stampCount.increment();
+            default -> other.increment();
         }
         processBytesForType(componentType, bytes);
     }
@@ -66,27 +54,28 @@ public abstract class EntityProcessor implements ObjIntConsumer<byte[]> {
     }
 
     public String report() {
-        this.stopwatch.end();
+        finish();
         StringBuilder sb = new StringBuilder();
         sb.append("Finished: ").append(this.getClass().getSimpleName());
         sb.append("\nDuration: ").append(stopwatch.durationString());
-        sb.append("\nAverage realization time: ").append(stopwatch.averageDurationForElementString(totalCount.get()));
-        if (conceptCount.get() > 0) {
+        sb.append("\nAverage realization time: ").append(stopwatch.averageDurationForElementString((int) totalCount.sum()));
+        if (conceptCount.sum() > 0) {
             sb.append("\nConcepts: ").append(conceptCount);
         }
-        if (semanticCount.get() > 0) {
-            sb.append("\nSemantics: ").append(semanticCount);
+        if (semanticCount.sum() > 0) {
+            sb.append(" Semantics: ").append(semanticCount);
         }
-        if (patternCount.get() > 0) {
-            sb.append("\nType pattern: ").append(patternCount);
+        if (patternCount.sum() > 0) {
+            sb.append(" Patterns: ").append(patternCount);
         }
-        if (stampCount.get() > 0) {
-            sb.append("\nStamps: ").append(stampCount);
+        if (stampCount.sum() > 0) {
+            sb.append(" Stamps: ").append(stampCount);
         }
-        if (other.get() > 0) {
-            sb.append("\nOthers: ").append(other);
+        if (other.sum() > 0) {
+            sb.append(" Others: ").append(other);
         }
-        sb.append("\n");
+        sb.append("\nTotal: ").append(totalCount).append("\n\n");
+
         return sb.toString();
     }
 }
